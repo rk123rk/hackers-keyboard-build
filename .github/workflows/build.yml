@@ -9,21 +9,22 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
-      - name: Find Gradle Wrapper
+      - name: Locate Project Root & Restore Wrapper
         id: locate
         run: |
-          echo "=== Scanning repository files ==="
-          find . -maxdepth 3 -not -path '*/.*'
-          
           GRADLEW_FILE=$(find . -name gradlew -type f | head -n 1)
           if [ -z "$GRADLEW_FILE" ]; then
-            echo "::error::gradlew file not found in repository. Generating a fresh wrapper..."
-            gradle wrapper
-            echo "dir=." >> $GITHUB_OUTPUT
+            ROOT_DIR="."
           else
-            GRADLEW_DIR=$(dirname "$GRADLEW_FILE")
-            echo "Found gradlew in: $GRADLEW_DIR"
-            echo "dir=$GRADLEW_DIR" >> $GITHUB_OUTPUT
+            ROOT_DIR=$(dirname "$GRADLEW_FILE")
+          fi
+          echo "dir=$ROOT_DIR" >> $GITHUB_OUTPUT
+
+          # Ensure gradle-wrapper.jar exists
+          mkdir -p "$ROOT_DIR/gradle/wrapper"
+          if [ ! -f "$ROOT_DIR/gradle/wrapper/gradle-wrapper.jar" ]; then
+            echo "Downloading missing gradle-wrapper.jar..."
+            curl -sLo "$ROOT_DIR/gradle/wrapper/gradle-wrapper.jar" https://raw.githubusercontent.com/gradle/gradle/v8.2.1/gradle/wrapper/gradle-wrapper.jar
           fi
 
       - name: Set up Java 17
