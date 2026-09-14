@@ -9,6 +9,18 @@ jobs:
       - name: Checkout Source
         uses: actions/checkout@v4
 
+      - name: Locate Project Root
+        id: find_dir
+        run: |
+          if [ -f "gradlew" ]; then
+            echo "dir=." >> $GITHUB_OUTPUT
+          elif [ -f "hackerskeyboard-master/gradlew" ]; then
+            echo "dir=hackerskeyboard-master" >> $GITHUB_OUTPUT
+          else
+            GRADLEW_PATH=$(find . -name gradlew | head -n 1)
+            echo "dir=$(dirname "$GRADLEW_PATH")" >> $GITHUB_OUTPUT
+          fi
+
       - name: Set up Java
         uses: actions/setup-java@v4
         with:
@@ -21,13 +33,14 @@ jobs:
           ndk-version: r25c
 
       - name: Grant Execute Permission to Gradle
-        run: chmod +x gradlew
+        run: chmod +x ${{ steps.find_dir.outputs.dir }}/gradlew
 
       - name: Build Debug APK
+        working-directory: ${{ steps.find_dir.outputs.dir }}
         run: ./gradlew assembleDebug
 
       - name: Upload Finished APK
         uses: actions/upload-artifact@v4
         with:
           name: HackersKeyboard-App
-          path: app/build/outputs/apk/debug/*.apk
+          path: '**/build/outputs/apk/debug/*.apk'
